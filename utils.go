@@ -399,3 +399,14 @@ func RegisterDatasource(href string, metadata StoreMetadata) (string, error) {
 
 	return makeStoreRequestPOST(catURL, string(jsonByteArray[:]))
 }
+
+func getDsStoreType(meta hypercat) string {
+	storeType := ""
+	for _,pair := range meta.ItemMetadata {
+		vals := pair.(map[string]interface{})
+		if vals["rel"].(string) == "urn:X-databox:rels:hasStoreType" {
+			storeType = vals["val"].(string)
+		}
+	}
+	return storeType
+}

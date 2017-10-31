@@ -167,13 +167,7 @@ func MakeSourceTimeSeries_0_2_0(dsMetadata string) (TimeSeries_0_2_0, error) {
 		return nil, err
 	}
 	href := meta.Href
-	storeType := ""
-	for _,pair := range meta.ItemMetadata {
-		vals := pair.(map[string]interface{})
-		if vals["rel"].(string) == "urn:X-databox:rels:hasStoreType" {
-			storeType = vals["val"].(string)
-		}
-	}
+	storeType := getDsStoreType(meta)
 	if storeType == STORE_JSON {
 		return jsonStore_TimeSeries_0_2_0{ href: href }, nil
 	} else if storeType == "" {
