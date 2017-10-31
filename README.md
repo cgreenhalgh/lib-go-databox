@@ -18,6 +18,7 @@ Examples can be found in the samples directory
 
 
 ## <a name="pkg-index">Index</a>
+* [Constants](#pkg-constants)
 * [func ExportLongpoll(destination string, payload string) (string, error)](#ExportLongpoll)
 * [func GetDsIdFromDsHref(href string) (string, error)](#GetDsIdFromDsHref)
 * [func GetHttpsCredentials() string](#GetHttpsCredentials)
@@ -41,13 +42,23 @@ Examples can be found in the samples directory
 * [func WSSubscribe(href string, storeType string) (string, error)](#WSSubscribe)
 * [func WSUnsubscribe(href string, storeType string) (string, error)](#WSUnsubscribe)
 * [func WaitForStoreStatus(href string)](#WaitForStoreStatus)
+* [type KeyValue_0_2_0](#KeyValue_0_2_0)
+  * [func MakeSourcKeyValue_0_2_0(dsMetadata string) (KeyValue_0_2_0, error)](#MakeSourcKeyValue_0_2_0)
+  * [func MakeStoreKeyValue_0_2_0(storeHref string, datasourceId string, storeType string) (KeyValue_0_2_0, error)](#MakeStoreKeyValue_0_2_0)
 * [type StoreMetadata](#StoreMetadata)
+* [type TimeSeries_0_2_0](#TimeSeries_0_2_0)
+  * [func MakeSourceTimeSeries_0_2_0(dsMetadata string) (TimeSeries_0_2_0, error)](#MakeSourceTimeSeries_0_2_0)
+  * [func MakeStoreTimeSeries_0_2_0(storeHref string, datasourceId string, storeType string) (TimeSeries_0_2_0, error)](#MakeStoreTimeSeries_0_2_0)
 
 
 #### <a name="pkg-files">Package files</a>
-[export.go](/src/target/export.go) [store-json.go](/src/target/store-json.go) [store-timeseries.go](/src/target/store-timeseries.go) [subscriptions.go](/src/target/subscriptions.go) [utils.go](/src/target/utils.go) 
+[api-ks.go](/src/target/api-ks.go) [api-ts.go](/src/target/api-ts.go) [export.go](/src/target/export.go) [store-json.go](/src/target/store-json.go) [store-timeseries.go](/src/target/store-timeseries.go) [subscriptions.go](/src/target/subscriptions.go) [utils.go](/src/target/utils.go) 
 
 
+## <a name="pkg-constants">Constants</a>
+``` go
+const STORE_JSON = "store-json"
+```
 
 
 
@@ -91,7 +102,7 @@ to go map[string]
 
 
 
-## <a name="RegisterDatasource">func</a> [RegisterDatasource](/src/target/utils.go?s=7981:8057#L349)
+## <a name="RegisterDatasource">func</a> [RegisterDatasource](/src/target/utils.go?s=8179:8255#L357)
 ``` go
 func RegisterDatasource(href string, metadata StoreMetadata) (string, error)
 ```
@@ -205,7 +216,7 @@ WSUnsubscribe Unsubscribes the caller to write notifications for a given route
 
 
 
-## <a name="WaitForStoreStatus">func</a> [WaitForStoreStatus](/src/target/utils.go?s=6963:6999#L298)
+## <a name="WaitForStoreStatus">func</a> [WaitForStoreStatus](/src/target/utils.go?s=7161:7197#L306)
 ``` go
 func WaitForStoreStatus(href string)
 ```
@@ -214,7 +225,57 @@ WaitForStoreStatus will wait for the store available at href to respond with an 
 
 
 
-## <a name="StoreMetadata">type</a> [StoreMetadata](/src/target/utils.go?s=7370:7604#L320)
+## <a name="KeyValue_0_2_0">type</a> [KeyValue_0_2_0](/src/target/api-ks.go?s=190:485#L11)
+``` go
+type KeyValue_0_2_0 interface {
+    // Read json-encoded value.
+    //
+    // Returns an error (404 not found) if no value was previously written.
+    Read() (string, error)
+
+    // Write json-encoded value.
+    Write(data string) error
+
+    // GetStoreURL returns the store URL (only)
+    StoreURL() (string, error)
+}
+```
+Datasource KeyValue API for databox v 0.2.0.
+
+Strictly a subset of the API offered by the store-json and store-timeseries.
+
+
+
+
+
+
+
+### <a name="MakeSourcKeyValue_0_2_0">func</a> [MakeSourcKeyValue_0_2_0](/src/target/api-ks.go?s=1959:2030#L72)
+``` go
+func MakeSourcKeyValue_0_2_0(dsMetadata string) (KeyValue_0_2_0, error)
+```
+Factory for a KeyValue_0_2_0 object suitable for the datasource.
+Ideally the created object should depend on the runtime databox version
+and the datasource store type.
+datasourceMetadata is the environment string passed to the app from the container
+manager which includes the datasource endpoint (href) and item-metadata
+rel 'urn:X-databox:rels:hasStoreType'
+
+
+### <a name="MakeStoreKeyValue_0_2_0">func</a> [MakeStoreKeyValue_0_2_0](/src/target/api-ks.go?s=1255:1364#L58)
+``` go
+func MakeStoreKeyValue_0_2_0(storeHref string, datasourceId string, storeType string) (KeyValue_0_2_0, error)
+```
+Factory for a KeyValue_0_2_0 object suitable for the store type.
+Ideally the created object should depend on the runtime databox version
+and the store type.
+Supported storeType currently 'store-json' only.
+
+
+
+
+
+## <a name="StoreMetadata">type</a> [StoreMetadata](/src/target/utils.go?s=7568:7802#L328)
 ``` go
 type StoreMetadata struct {
     Description    string
@@ -232,6 +293,85 @@ type StoreMetadata struct {
 
 
 
+
+
+
+
+
+## <a name="TimeSeries_0_2_0">type</a> [TimeSeries_0_2_0](/src/target/api-ts.go?s=350:1665#L17)
+``` go
+type TimeSeries_0_2_0 interface {
+    // GetLatest returns the datasource's latest value, if any.
+    //
+    // Returns a single json-encoded value object, or "" if there is no value.
+    ReadLatest() (string, error)
+
+    // GetSince returns an array of values since time, inclusive.
+    //
+    // Returns a json-encoded array of value objects.
+    ReadSince(startTime time.Time) (string, error)
+
+    // GetSince returns an array of values between startTime (inclusive) and
+    // endTime (inclusive).
+    //
+    // Returns a json-encoded array of value objects.
+    ReadRange(startTime time.Time, endTime time.Time) (string, error)
+
+    // WriteData writes a JSON-encoded value with no surrounding value object
+    // or timestamp.
+    // The time associated with the data will be assigned by the store.
+    WriteRawValue(data string) error
+
+    // WriteDataAndTime writes a JSON-encoded value with no surrounding value
+    // object for the specified timestamp.
+    WriteRawValueAt(data string, time time.Time) error
+
+    // Time2Timestamp returns the (possibly store-specific) timestamp
+    // for the given time.
+    Time2Timestamp(t time.Time) float64
+
+    // Timestamp2Time converts the (possibly store-specific) timestamp
+    // from a value object to a time.
+    Timestamp2Time(ts float64) time.Time
+
+    // GetStoreURL returns the store URL (only)
+    StoreURL() (string, error)
+}
+```
+TimeSeries API for databox v 0.2.0.
+
+Strictly a subset of the API offered by the store-json and store-timeseries
+including common methods.
+
+Note that a single store value is a JSON-encoded object with fields timestamp
+(float64) and data (value type).
+
+
+
+
+
+
+
+### <a name="MakeSourceTimeSeries_0_2_0">func</a> [MakeSourceTimeSeries_0_2_0](/src/target/api-ts.go?s=5043:5119#L164)
+``` go
+func MakeSourceTimeSeries_0_2_0(dsMetadata string) (TimeSeries_0_2_0, error)
+```
+Factory for a TimeSeries_0_2_0 object suitable for the datasource.
+Ideally the created object should depend on the runtime databox version
+and the datasource store type.
+datasourceMetadata is the environment string passed to the app from the container
+manager which includes the datasource endpoint (href) and item-metadata
+rel 'urn:X-databox:rels:hasStoreType'
+
+
+### <a name="MakeStoreTimeSeries_0_2_0">func</a> [MakeStoreTimeSeries_0_2_0](/src/target/api-ts.go?s=4329:4442#L150)
+``` go
+func MakeStoreTimeSeries_0_2_0(storeHref string, datasourceId string, storeType string) (TimeSeries_0_2_0, error)
+```
+Factory for a TimeSeries_0_2_0 object suitable for the store type.
+Ideally the created object should depend on the runtime databox version
+and the store type.
+Supported storeType currently 'store-json' only.
 
 
 
